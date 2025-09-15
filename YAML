@@ -1,0 +1,339 @@
+ComponentDefinitions:
+  NotificationBell:
+    DefinitionType: CanvasComponent
+    CustomProperties:
+      HasNotifications:
+        PropertyKind: Input
+        DisplayName: HasNotifications
+        Description: Shows red notification dot when true
+        DataType: Boolean
+        Default: =true
+      NotificationCount:
+        PropertyKind: Input
+        DisplayName: NotificationCount
+        Description: Number of notifications (shows count if > 0)
+        DataType: Number
+        Default: =0
+      NotificationText:
+        PropertyKind: Input
+        DisplayName: NotificationText
+        Description: A custom property for notification label text
+        DataType: Text
+        Default: ="Notifications"
+      OnSelect:
+        PropertyKind: Event
+        DisplayName: OnSelect
+        Description: Action to perform when bell is clicked
+        ReturnType: None
+        Default: =false
+      Size:
+        PropertyKind: Input
+        DisplayName: Size
+        Description: Size of the notification bell (width and height in pixels)
+        DataType: Number
+        Default: =45
+      Theme:
+        PropertyKind: Input
+        DisplayName: Theme
+        Description: Light or Dark theme for visual appearance
+        DataType: Text
+        Default: ="Light"
+    Properties:
+      Fill: |-
+        =// Transparent background for root container
+        Color.Transparent
+      Height: |-
+        =// Component height is controlled by Size property
+        NotificationBell.Size
+      Width: |-
+        =// Component width is controlled by Size property
+        NotificationBell.Size
+    Children:
+      - cntBellContainer:
+          Control: GroupContainer@1.3.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: |-
+              =// No shadow effect
+              DropShadow.None
+            Fill: |-
+              =// Transparent container background
+              Color.Transparent
+            Height: |-
+              =// Fill parent height
+              Parent.Height
+            RadiusBottomLeft: |-
+              =// Rounded corners for modern appearance
+              6
+            RadiusBottomRight: =6
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            Width: |-
+              =// Fill parent width
+              Parent.Width
+          Children:
+            - imgBell:
+                Control: Image@2.2.3
+                Properties:
+                  AccessibleLabel: |-
+                    =// Dynamic accessibility label based on notification state
+                    If(
+                        NotificationBell.HasNotifications || NotificationBell.NotificationCount > 0,
+                        // When notifications exist, describe count or general state
+                        NotificationBell.NotificationText & " - " & If(
+                            NotificationBell.NotificationCount > 0,
+                            NotificationBell.NotificationCount & " new " & NotificationBell.NotificationText,
+                            "You have new " & NotificationBell.NotificationText
+                        ),
+                        // When no notifications, indicate empty state
+                        "No new " & NotificationBell.NotificationText
+                    )
+                  BorderColor: |-
+                    =// Dark blue border
+                    RGBA(0, 18, 107, 1)
+                  Height: |-
+                    =// Fill container height
+                    Parent.Height
+                  Image: |-
+                    =// Dynamic SVG bell icon with theme-aware coloring
+                    Concatenate(
+                      "data:image/svg+xml;utf8,",
+                      EncodeUrl(
+                        "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 24 24' fill='none' stroke='" &
+                        // White stroke for dark theme, black for light theme
+                        If(NotificationBell.Theme = "Dark", "#ffffff", "#000000") &
+                        "' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" &
+                        // Bell body path
+                        "<path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/>" &
+                        // Bell clapper/bottom curve
+                        "<path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/>" &
+                        "</svg>"
+                      )
+                    )
+                  PaddingBottom: |-
+                    =// Padding around the bell icon (15% of container size)
+                    Parent.Height * 0.15
+                  PaddingLeft: =Parent.Width * 0.15
+                  PaddingRight: =Parent.Width * 0.15
+                  PaddingTop: =Parent.Height * 0.15
+                  Width: |-
+                    =// Fill container width
+                    Parent.Width
+            - cntPulseAnimation:
+                Control: GroupContainer@1.3.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: |-
+                    =// Animated fill with opacity that fades based on timer progress
+                    If(
+                        NotificationBell.Theme = "Dark",
+                        // Red color with animated opacity for dark theme
+                        RGBA(
+                            239,
+                            68,
+                            68,
+                            Max(
+                                0,
+                                0.3 * (1 - tmrPulse.Value / tmrPulse.Duration)
+                            )
+                        ),
+                        // Slightly different red for light theme
+                        RGBA(
+                            220,
+                            38,
+                            38,
+                            Max(
+                                0,
+                                0.3 * (1 - tmrPulse.Value / tmrPulse.Duration)
+                            )
+                        )
+                    )
+                  Height: |-
+                    =// Animated height that grows with timer progress
+                    16 + 12 * With({p: tmrPulse.Value / tmrPulse.Duration}, Power(p, 0.6))
+                  RadiusBottomLeft: |-
+                    =// Circular shape with radius = half of height
+                    Self.Height / 2
+                  RadiusBottomRight: =Self.Height / 2
+                  RadiusTopLeft: =Self.Height / 2
+                  RadiusTopRight: =Self.Height / 2
+                  Visible: |-
+                    =// Only visible when there are notifications but no specific count
+                    NotificationBell.HasNotifications && NotificationBell.NotificationCount = 0
+                  Width: |-
+                    =// Animated width that grows with timer progress
+                    16 + 12 * With({p: tmrPulse.Value / tmrPulse.Duration}, Power(p, 0.6))
+                  X: "=// Position in top-right corner\nParent.Width - Self.Width "
+                Children:
+                  - tmrPulse:
+                      Control: Timer@2.1.0
+                      Properties:
+                        AutoPause: |-
+                          =// Don't pause automatically
+                          false
+                        AutoStart: |-
+                          =// Start automatically when conditions met
+                          true
+                        BorderColor: =ColorFade(Self.Fill, -15%)
+                        Color: =RGBA(255, 255, 255, 1)
+                        DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+                        DisabledColor: =ColorFade(Self.Fill, 90%)
+                        DisabledFill: =ColorFade(Self.Fill, 70%)
+                        Duration: |-
+                          =// 1 second pulse cycle
+                          1000
+                        Fill: =RGBA(56, 96, 178, 1)
+                        Font: =Font.'Open Sans'
+                        Height: |-
+                          =// Fixed timer size
+                          16
+                        HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                        HoverColor: =RGBA(255, 255, 255, 1)
+                        HoverFill: =ColorFade(RGBA(56, 96, 178, 1), -20%)
+                        PressedBorderColor: =Self.Fill
+                        PressedColor: =Self.Fill
+                        PressedFill: =Self.Color
+                        Repeat: |-
+                          =// Repeat the pulse animation
+                          true
+                        Start: |-
+                          =// Start timer only when notifications exist but no count is shown
+                          NotificationBell.HasNotifications && NotificationBell.NotificationCount = 0
+                        Visible: |-
+                          =// Timer is hidden, only animation effect is visible
+                          false
+                        Width: |-
+                          =// Fixed timer size
+                          16
+            - cntNotificationBadge:
+                Control: GroupContainer@1.3.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Fill: |-
+                    =// Red background for notification badge
+                    RGBA(220, 38, 38, 1)
+                  Height: |-
+                    =// Dynamic height: larger if showing count, smaller for simple dot
+                    If(NotificationBell.NotificationCount > 0, Min(20, Parent.Height * 0.45), 12)
+                  RadiusBottomLeft: |-
+                    =// Circular shape with radius = half of height
+                    Self.Height / 2
+                  RadiusBottomRight: =Self.Height / 2
+                  RadiusTopLeft: =Self.Height / 2
+                  RadiusTopRight: =Self.Height / 2
+                  Visible: |-
+                    =// Visible when there are notifications or a count to display
+                    NotificationBell.HasNotifications || NotificationBell.NotificationCount > 0
+                  Width: |-
+                    =// Dynamic width based on notification count
+                    If(
+                        NotificationBell.NotificationCount > 0,
+                        // When showing count, width adjusts based on number size
+                        Max(
+                            Self.Height,        // Minimum width = height (circular)
+                            If(
+                                NotificationBell.NotificationCount > 99,
+                                24,             // Width for "99+" display
+                                If(
+                                    NotificationBell.NotificationCount > 9,
+                                    20,         // Width for two-digit numbers
+                                    Self.Height // Width for single digits (circular)
+                                )
+                            )
+                        ),
+                        12                      // Simple dot width when no count
+                    )
+                  X: |-
+                    =// Position in top-right corner with small margin
+                    Parent.Width - Self.Width - 2
+                  Y: =2
+                Children:
+                  - lblNotificationCount:
+                      Control: Text@0.0.51
+                      Properties:
+                        Align: |-
+                          =// Center-align text
+                          'TextCanvas.Align'.Center
+                        Font: =Font.'Segoe UI'
+                        FontColor: |-
+                          =// White text
+                          RGBA(255, 255, 255, 1)
+                        Height: |-
+                          =// Fill badge height
+                          Parent.Height
+                        Size: |-
+                          =// Dynamic font size
+                          Max(7, Parent.Height * 0.5)
+                        Text: |-
+                          =// Display count with "99+" cap for large numbers
+                          If(
+                              NotificationBell.NotificationCount > 0,
+                              If(
+                                  NotificationBell.NotificationCount > 99,
+                                  "99+",                              // Cap at 99+
+                                  Text(NotificationBell.NotificationCount) // Show actual count
+                              ),
+                              ""                                      // Empty when no count
+                          )
+                        VerticalAlign: |-
+                          =// Vertical center
+                          VerticalAlign.Middle
+                        Visible: |-
+                          =// Only visible when there's a count to show
+                          NotificationBell.NotificationCount > 0
+                        Weight: |-
+                          =// Bold font weight
+                          'TextCanvas.Weight'.Bold
+                        Width: |-
+                          =// Fill badge width
+                          Parent.Width
+            - btnBell:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: |-
+                    =// No border
+                    Color.Transparent
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =// Transparent background
+                    Color.Transparent
+                  FocusedBorderColor: |-
+                    =// Focus border color based on theme
+                    If(NotificationBell.Theme = "Dark", RGBA(255,255,255,0.3), RGBA(0,0,0,0.3))
+                  Font: =Font.'Open Sans'
+                  Height: |-
+                    =// Cover entire bell area
+                    Parent.Height
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: |-
+                    =// Hover background color based on theme
+                    If(NotificationBell.Theme = "Dark", RGBA(255,255,255,0.1), RGBA(0,0,0,0.1))
+                  OnSelect: |-
+                    =// Execute the OnSelect event when button is clicked
+                    NotificationBell.OnSelect()
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: |-
+                    =// Pressed background color based on theme
+                    If(NotificationBell.Theme = "Dark", RGBA(255,255,255,0.2), RGBA(0,0,0,0.2))
+                  RadiusBottomLeft: |-
+                    =// Rounded corners matching container
+                    6
+                  RadiusBottomRight: =6
+                  RadiusTopLeft: =6
+                  RadiusTopRight: =6
+                  Text: |-
+                    =// No button text (invisible overlay)
+                    ""
+                  Tooltip: |-
+                    =// Use bell's accessibility label
+                    imgBell.AccessibleLabel
+                  Width: |-
+                    =// Cover entire bell area
+                    Parent.Width
+
+
